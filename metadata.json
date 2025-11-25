@@ -1,0 +1,5 @@
+{
+  "name": "TextShape Art Generator",
+  "description": "Crea arte tipografica ad alta risoluzione inserendo nomi all'interno di forme. Include maschere generate dall'IA e liste di testo personalizzate.",
+  "requestFramePermissions": []
+}
