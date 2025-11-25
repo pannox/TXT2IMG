@@ -19,6 +19,8 @@ const App: React.FC = () => {
     fontFamily: 'Roboto Mono',
     textColor: '#000000',
     backgroundColor: '#ffffff',
+    backgroundMode: 'solid',
+    backgroundImage: '',
     iterations: 3000
   });
 

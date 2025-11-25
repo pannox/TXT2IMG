@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ArtSettings, ShapeMask } from '../types';
-import { Settings, Type, Image as ImageIcon, Sparkles, RefreshCcw, Download, Upload, X, FileCode } from 'lucide-react';
+import { Settings, Type, Image as ImageIcon, Sparkles, RefreshCcw, Download, Upload, X, FileCode, Palette, ImagePlus } from 'lucide-react';
 import { generateShapeMask } from '../services/geminiService';
 
 interface Props {
@@ -38,6 +38,7 @@ const ControlPanel: React.FC<Props> = ({
   const [prompt, setPrompt] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
 
   const handleAiShape = async () => {
     if (!prompt) return;
@@ -76,7 +77,19 @@ const ControlPanel: React.FC<Props> = ({
       }
     };
     reader.readAsDataURL(file);
-    // Reset input so same file can be selected again if needed
+    e.target.value = '';
+  };
+
+  const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setSettings({ ...settings, backgroundImage: event.target.result as string, backgroundMode: 'image' });
+      }
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -149,7 +162,7 @@ const ControlPanel: React.FC<Props> = ({
                             onRemoveShape(shape.id);
                           }
                         }}
-                        className="absolute top-1 right-1 z-20 bg-white border border-gray-200 rounded-full p-1 text-gray-500 hover:text-red-600 hover:border-red-600 hover:bg-red-50 shadow-sm transition-all transform hover:scale-110"
+                        className="absolute top-1 right-1 z-10 bg-white border border-gray-200 rounded-full p-1 text-gray-500 hover:text-red-600 hover:border-red-600 hover:bg-red-50 shadow-sm transition-all transform hover:scale-110"
                         title="Rimuovi forma"
                       >
                         <X className="w-3 h-3" />
@@ -203,13 +216,6 @@ const ControlPanel: React.FC<Props> = ({
                 {isAiLoading ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : "Genera e Aggiungi"}
               </button>
             </div>
-            
-            {(currentShape.type === 'generated' || currentShape.type === 'upload') && (
-               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                 <p className="text-xs text-gray-500 mb-2">Anteprima Maschera:</p>
-                 <img src={currentShape.url} className="w-full h-32 object-contain bg-white rounded border border-gray-200" />
-               </div>
-            )}
           </div>
         )}
 
@@ -246,6 +252,65 @@ const ControlPanel: React.FC<Props> = ({
                 <option value="Roboto Mono">Roboto Mono (Monospace)</option>
                 <option value="Arial">Arial</option>
               </select>
+            </div>
+
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">Sfondo</label>
+               <div className="flex bg-gray-100 p-1 rounded-lg mb-3">
+                  <button
+                    onClick={() => updateSetting('backgroundMode', 'solid')}
+                    className={`flex-1 text-xs py-2 rounded-md transition-all flex items-center justify-center ${settings.backgroundMode === 'solid' ? 'bg-white shadow text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <Palette className="w-3 h-3 mr-1" /> Colore
+                  </button>
+                  <button
+                    onClick={() => updateSetting('backgroundMode', 'image')}
+                    className={`flex-1 text-xs py-2 rounded-md transition-all flex items-center justify-center ${settings.backgroundMode === 'image' ? 'bg-white shadow text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <ImagePlus className="w-3 h-3 mr-1" /> Immagine
+                  </button>
+               </div>
+
+               {settings.backgroundMode === 'solid' ? (
+                 <div className="flex gap-2">
+                   <input 
+                     type="color" 
+                     value={settings.backgroundColor}
+                     onChange={(e) => updateSetting('backgroundColor', e.target.value)}
+                     className="h-8 w-8 rounded cursor-pointer border-0 p-0 shadow-sm"
+                   />
+                   <span className="text-sm self-center text-gray-500">{settings.backgroundColor}</span>
+                 </div>
+               ) : (
+                 <div className="space-y-2">
+                   <input 
+                     type="file" 
+                     ref={bgInputRef}
+                     onChange={handleBgUpload}
+                     accept="image/*"
+                     className="hidden"
+                   />
+                   <button
+                    onClick={() => bgInputRef.current?.click()}
+                    className="w-full py-2 border border-dashed border-gray-300 rounded-md text-xs text-gray-500 hover:bg-gray-50"
+                   >
+                     {settings.backgroundImage ? 'Cambia Immagine' : 'Carica Immagine Sfondo'}
+                   </button>
+                   
+                   {settings.backgroundImage && (
+                     <div className="relative h-24 w-full rounded border border-gray-200 overflow-hidden bg-gray-50">
+                       <img src={settings.backgroundImage} className="w-full h-full object-cover" />
+                       <button 
+                         onClick={() => updateSetting('backgroundImage', '')}
+                         className="absolute top-1 right-1 bg-white/80 p-1 rounded-full text-red-500 hover:bg-white"
+                         title="Rimuovi"
+                       >
+                         <X className="w-3 h-3" />
+                       </button>
+                     </div>
+                   )}
+                 </div>
+               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -324,18 +389,6 @@ const ControlPanel: React.FC<Props> = ({
                    className="h-8 w-8 rounded cursor-pointer border-0 p-0"
                  />
                  <span className="text-sm self-center text-gray-500">{settings.textColor}</span>
-               </div>
-            </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Colore Sfondo</label>
-               <div className="flex gap-2">
-                 <input 
-                   type="color" 
-                   value={settings.backgroundColor}
-                   onChange={(e) => updateSetting('backgroundColor', e.target.value)}
-                   className="h-8 w-8 rounded cursor-pointer border-0 p-0 shadow-sm"
-                 />
-                 <span className="text-sm self-center text-gray-500">{settings.backgroundColor}</span>
                </div>
             </div>
           </div>

@@ -6,6 +6,8 @@ export interface ArtSettings {
   fontFamily: string;
   textColor: string;
   backgroundColor: string;
+  backgroundMode: 'solid' | 'image';
+  backgroundImage?: string;
   iterations: number; // Higher means tighter packing but slower
 }
 

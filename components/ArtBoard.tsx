@@ -59,9 +59,50 @@ const ArtBoard: React.FC<Props> = ({
     canvas.width = size;
     canvas.height = size;
 
-    // Background
-    ctx.fillStyle = settings.backgroundColor;
-    ctx.fillRect(0, 0, size, size);
+    // Background Rendering
+    if (settings.backgroundMode === 'image' && settings.backgroundImage) {
+      try {
+        await new Promise<void>((resolve) => {
+          const bgImg = new Image();
+          bgImg.crossOrigin = 'Anonymous';
+          bgImg.src = settings.backgroundImage!;
+          bgImg.onload = () => {
+            // Draw image covering the canvas (like object-fit: cover)
+            const imgRatio = bgImg.width / bgImg.height;
+            const canvasRatio = size / size;
+            let renderW, renderH, offsetX, offsetY;
+
+            if (imgRatio > canvasRatio) {
+              renderH = size;
+              renderW = bgImg.width * (size / bgImg.height);
+              offsetX = (size - renderW) / 2;
+              offsetY = 0;
+            } else {
+              renderW = size;
+              renderH = bgImg.height * (size / bgImg.width);
+              offsetX = 0;
+              offsetY = (size - renderH) / 2;
+            }
+            
+            ctx.drawImage(bgImg, offsetX, offsetY, renderW, renderH);
+            resolve();
+          };
+          bgImg.onerror = () => {
+             // Fallback to white if fail
+             ctx.fillStyle = '#ffffff';
+             ctx.fillRect(0, 0, size, size);
+             resolve();
+          };
+        });
+      } catch (e) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+      }
+    } else {
+      // Solid Color
+      ctx.fillStyle = settings.backgroundColor;
+      ctx.fillRect(0, 0, size, size);
+    }
 
     // Calculate packing
     try {
@@ -119,9 +160,13 @@ const ArtBoard: React.FC<Props> = ({
     setDownloadSvgTrigger(() => {
       if (placedItems.length === 0) return;
 
+      const backgroundSvg = settings.backgroundMode === 'image' && settings.backgroundImage
+        ? `<image href="${settings.backgroundImage}" x="0" y="0" width="${canvasSize}" height="${canvasSize}" preserveAspectRatio="xMidYMid slice" />`
+        : `<rect width="100%" height="100%" fill="${settings.backgroundColor}"/>`;
+
       const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasSize}" height="${canvasSize}" viewBox="0 0 ${canvasSize} ${canvasSize}">
-  <rect width="100%" height="100%" fill="${settings.backgroundColor}"/>
+  ${backgroundSvg}
   ${placedItems.map(item => `
   <text 
     x="${item.x}" 
